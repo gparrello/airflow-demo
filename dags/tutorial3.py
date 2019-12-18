@@ -25,12 +25,23 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-dag = DAG(dag_id='tutorial2', default_args=default_args, schedule_interval=timedelta(days=1))
+dag = DAG(dag_id='tutorial3', default_args=default_args, schedule_interval=timedelta(days=1))
 
 process_start = DummyOperator(dag=dag, task_id='process_start')
 process_end = DummyOperator(dag=dag, task_id='process_end')
 
 for i in range(5):
     task = DummyOperator(dag=dag, task_id='task_{}'.format(i))
-    process_start >> task >> process_end
+    process_start >> task
+    for j in range(2):
+        subtask = PythonOperator(
+            dag=dag,
+            task_id='subtask_{}_{}'.format(i,j),
+            python_callable=my_python_function,
+            op_kwargs={'num': i}
+        )
+        if j == 1:
+            task >> subtask >> process_end
+        else:
+            task >> subtask
 
